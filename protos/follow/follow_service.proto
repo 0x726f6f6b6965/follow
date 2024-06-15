@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package follow.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/0x726f6f6b6965/follow/protos/follow/v1;v1";
+
+
+service FollowService {
+    // FollowUser: follow a user.
+    rpc FollowUser (FollowUserRequest) returns (google.protobuf.Empty);
+
+    // UnFollowUser: unfollow a user.
+    rpc UnFollowUser (UnFollowUserRequest) returns (google.protobuf.Empty);
+
+    // GetFollowers: get followers list.
+    rpc GetFollowers(GetCommonRequest) returns (GetCommonResponse);
+
+    // GetFollowing: get following list.
+    rpc GetFollowing (GetCommonRequest) returns (GetCommonResponse);
+
+    // GetFriends: get friends list.
+    rpc GetFriends(GetCommonRequest) returns (GetCommonResponse);
+}
+
+message FollowUserRequest {
+    string username = 1;
+    string following = 2;
+}
+
+message UnFollowUserRequest {
+    string username = 1;
+    string following = 2;
+}
+
+message GetCommonRequest {
+    string username = 1;
+    string page_token = 2;
+}
+
+message GetCommonResponse {
+    repeated string usernames = 1;
+    string next_page_token = 2;
+}
