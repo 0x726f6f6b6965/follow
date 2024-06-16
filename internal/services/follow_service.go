@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/0x726f6f6b6965/follow/internal/helper"
 	"github.com/0x726f6f6b6965/follow/internal/storage/user"
 	"github.com/0x726f6f6b6965/follow/pkg/pagination"
-	pbFollow "github.com/0x726f6f6b6965/follow/protos/follow"
+	pbFollow "github.com/0x726f6f6b6965/follow/protos/follow/v1"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
@@ -19,14 +20,15 @@ type followService struct {
 	storage user.SotrageUsers
 }
 
-// FollowUser implements v1.FollowServiceServer.
+// FollowUser follow a user.
 func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUserRequest) (*emptypb.Empty, error) {
 	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Following)
 	if err != nil {
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 2 {
-		return nil, ErrUserNotFound
+		return nil, errors.Join(ErrUserNotFound,
+			fmt.Errorf("get not enough users: %v", usersInfo))
 	}
 	var (
 		userId   int
@@ -40,24 +42,26 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 		}
 	}
 	if userId == 0 || targetId == 0 {
-		return nil, ErrUserNotFound
+		return nil, errors.Join(ErrUserNotFound,
+			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
 	}
 
 	err = f.storage.SetFollowing(userId, targetId)
 	if err != nil {
-		return nil, errors.Join(ErrFollow, err)
+		return nil, errors.Join(ErrSetFollow, err)
 	}
 	return &emptypb.Empty{}, nil
 }
 
-// UnFollowUser implements v1.FollowServiceServer.
+// UnFollowUser unfollow a user.
 func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollowUserRequest) (*emptypb.Empty, error) {
 	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Following)
 	if err != nil {
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 2 {
-		return nil, ErrUserNotFound
+		return nil, errors.Join(ErrUserNotFound,
+			fmt.Errorf("get not enough users: %v", usersInfo))
 	}
 
 	var (
@@ -72,16 +76,17 @@ func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollow
 		}
 	}
 	if userId == 0 || targetId == 0 {
-		return nil, ErrUserNotFound
+		return nil, errors.Join(ErrUserNotFound,
+			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
 	}
 	err = f.storage.UnsetFollowing(userId, targetId)
 	if err != nil {
-		return nil, errors.Join(ErrFollow, err)
+		return nil, errors.Join(ErrSetFollow, err)
 	}
 	return &emptypb.Empty{}, nil
 }
 
-// GetFollowers implements v1.FollowServiceServer.
+// GetFollowers get followers list.
 func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
 	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
@@ -96,12 +101,12 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 		Size:   DEFAUTL_SIZE,
 	}
 	if !helper.IsEmpty(req.PageToken) {
-		if parsErr := token.DecodePageTokenStruct(req.PageToken); parsErr != nil {
-			token.LastId = 0
-			token.Size = DEFAUTL_SIZE
-		}
-
+		_ = token.DecodePageTokenStruct(req.PageToken)
 	}
+	if req.Size > 0 {
+		token.Size = int(req.Size)
+	}
+	lastId := token.LastId
 	followersInfo, err := f.storage.GetUserWithFollowers(userId, token.LastId, token.Size)
 	if err != nil {
 		return nil, err
@@ -114,6 +119,9 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 		}
 	}
 	nextToken := token.String()
+	if lastId == token.LastId {
+		nextToken = ""
+	}
 
 	resp := &pbFollow.GetCommonResponse{
 		NextPageToken: nextToken,
@@ -122,7 +130,7 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 	return resp, nil
 }
 
-// GetFollowing implements v1.FollowServiceServer.
+// GetFollowing get following list.
 func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
 	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
@@ -137,12 +145,12 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 		Size:   DEFAUTL_SIZE,
 	}
 	if !helper.IsEmpty(req.PageToken) {
-		if parsErr := token.DecodePageTokenStruct(req.PageToken); parsErr != nil {
-			token.LastId = 0
-			token.Size = DEFAUTL_SIZE
-		}
-
+		_ = token.DecodePageTokenStruct(req.PageToken)
 	}
+	if req.Size > 0 {
+		token.Size = int(req.Size)
+	}
+	lastId := token.LastId
 	followingInfo, err := f.storage.GetUserWithFollowing(userId, token.LastId, token.Size)
 	if err != nil {
 		return nil, err
@@ -155,6 +163,9 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 		}
 	}
 	nextToken := token.String()
+	if lastId == token.LastId {
+		nextToken = ""
+	}
 
 	resp := &pbFollow.GetCommonResponse{
 		NextPageToken: nextToken,
@@ -163,7 +174,7 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 	return resp, nil
 }
 
-// GetFriends implements v1.FollowServiceServer.
+// GetFriends get friends list.
 func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
 	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
@@ -178,12 +189,12 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 		Size:   DEFAUTL_SIZE,
 	}
 	if !helper.IsEmpty(req.PageToken) {
-		if parsErr := token.DecodePageTokenStruct(req.PageToken); parsErr != nil {
-			token.LastId = 0
-			token.Size = DEFAUTL_SIZE
-		}
-
+		_ = token.DecodePageTokenStruct(req.PageToken)
 	}
+	if req.Size > 0 {
+		token.Size = int(req.Size)
+	}
+	lastId := token.LastId
 	friendInfos, err := f.storage.GetUserWithFriends(userId, token.LastId, token.Size)
 	if err != nil {
 		return nil, err
@@ -196,7 +207,9 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 		}
 	}
 	nextToken := token.String()
-
+	if lastId == token.LastId {
+		nextToken = ""
+	}
 	resp := &pbFollow.GetCommonResponse{
 		NextPageToken: nextToken,
 	}

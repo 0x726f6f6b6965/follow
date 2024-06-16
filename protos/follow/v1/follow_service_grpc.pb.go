@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             (unknown)
-// source: follow/follow_service.proto
+// source: follow/v1/follow_service.proto
 
 package v1
 
@@ -264,5 +264,5 @@ var FollowService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "follow/follow_service.proto",
+	Metadata: "follow/v1/follow_service.proto",
 }

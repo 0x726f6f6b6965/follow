@@ -36,7 +36,8 @@ message UnFollowUserRequest {
 
 message GetCommonRequest {
     string username = 1;
-    string page_token = 2;
+    int32 size = 2;
+    string page_token = 3;
 }
 
 message GetCommonResponse {
