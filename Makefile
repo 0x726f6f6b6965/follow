@@ -28,3 +28,9 @@ proto-gen:
 .PHONY: proto-clean
 proto-clean: 
 	@find protos -type f -name "*.go" -delete
+
+## test-go: Test go file and show the coverage
+.PHONY: test-go
+test-go:
+	@go test --coverprofile=coverage.out ./... 
+	@go tool cover -html=coverage.out  

@@ -4,18 +4,20 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/0x726f6f6b6965/follow/internal/storage/models"
 	"github.com/0x726f6f6b6965/follow/mocks"
 	"github.com/0x726f6f6b6965/follow/pkg/pagination"
 	pbFollow "github.com/0x726f6f6b6965/follow/protos/follow/v1"
 	"github.com/stretchr/testify/assert"
+	boom "github.com/tylertreat/BoomFilters"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 func TestFollowUser(t *testing.T) {
-	ser := initFollowService()
+	ser, filter := initFollowService()
 	userId := 3
 	followingId := 5
 	req := &pbFollow.FollowUserRequest{
@@ -39,7 +41,26 @@ func TestFollowUser(t *testing.T) {
 		mocks.SetFollowingFunc = func(userId, targetId int) error {
 			return nil
 		}
+
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.FollowUser(ctx, req)
+		assert.Nil(t, err)
+
+		// get user from cache
+		step := 0
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			if step == 0 {
+				step += 1
+				return fmt.Sprintf("%d", userId), nil
+			}
+			return fmt.Sprintf("%d", followingId), nil
+		}
+		_, err = ser.FollowUser(ctx, req)
 		assert.Nil(t, err)
 	})
 
@@ -52,9 +73,22 @@ func TestFollowUser(t *testing.T) {
 				},
 			}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.FollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Username))
+		_, err = ser.FollowUser(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 
 	t.Run("following user not exist", func(t *testing.T) {
@@ -66,9 +100,22 @@ func TestFollowUser(t *testing.T) {
 				},
 			}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.FollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Following))
+		_, err = ser.FollowUser(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 
 	t.Run("already follow", func(t *testing.T) {
@@ -87,6 +134,12 @@ func TestFollowUser(t *testing.T) {
 		mocks.SetFollowingFunc = func(userId, targetId int) error {
 			return gorm.ErrDuplicatedKey
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.FollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrSetFollow)
@@ -94,7 +147,7 @@ func TestFollowUser(t *testing.T) {
 }
 
 func TestUnFollowUser(t *testing.T) {
-	ser := initFollowService()
+	ser, filter := initFollowService()
 	userId := 3
 	followingId := 5
 	req := &pbFollow.UnFollowUserRequest{
@@ -118,7 +171,25 @@ func TestUnFollowUser(t *testing.T) {
 		mocks.UnsetFollowingFunc = func(userId, targetId int) error {
 			return nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.UnFollowUser(ctx, req)
+		assert.Nil(t, err)
+
+		// get user from cache
+		step := 0
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			if step == 0 {
+				step += 1
+				return fmt.Sprintf("%d", userId), nil
+			}
+			return fmt.Sprintf("%d", followingId), nil
+		}
+		_, err = ser.UnFollowUser(ctx, req)
 		assert.Nil(t, err)
 	})
 
@@ -131,9 +202,22 @@ func TestUnFollowUser(t *testing.T) {
 				},
 			}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.UnFollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Username))
+		_, err = ser.UnFollowUser(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 
 	t.Run("following user not exist", func(t *testing.T) {
@@ -145,14 +229,27 @@ func TestUnFollowUser(t *testing.T) {
 				},
 			}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.UnFollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Following))
+		_, err = ser.UnFollowUser(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 }
 
 func TestGetFollowers(t *testing.T) {
-	ser := initFollowService()
+	ser, filter := initFollowService()
 	id := 3
 	req := &pbFollow.GetCommonRequest{
 		Username: "test-user",
@@ -189,6 +286,12 @@ func TestGetFollowers(t *testing.T) {
 				expect = append(expect, fmt.Sprintf("follower-%d", i))
 			}
 			return result, nil
+		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
 		}
 		resp, err := ser.GetFollowers(ctx, req)
 		assert.Nil(t, err)
@@ -225,6 +328,11 @@ func TestGetFollowers(t *testing.T) {
 			}
 			return result, nil
 		}
+		// get from cache
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return fmt.Sprintf("%d", id), nil
+		}
+
 		resp, err = ser.GetFollowers(ctx, req)
 		assert.Nil(t, err)
 		for _, follower := range resp.Usernames {
@@ -241,14 +349,27 @@ func TestGetFollowers(t *testing.T) {
 		mocks.GetUserInfoFunc = func(username ...string) ([]models.User, error) {
 			return []models.User{}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.GetFollowers(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Username))
+		_, err = ser.GetFollowers(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 }
 
 func TestGetFollowing(t *testing.T) {
-	ser := initFollowService()
+	ser, filter := initFollowService()
 	id := 3
 	req := &pbFollow.GetCommonRequest{
 		Username: "test-user",
@@ -286,6 +407,12 @@ func TestGetFollowing(t *testing.T) {
 			}
 			return result, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		resp, err := ser.GetFollowing(ctx, req)
 		assert.Nil(t, err)
 		for _, follower := range resp.Usernames {
@@ -321,6 +448,10 @@ func TestGetFollowing(t *testing.T) {
 			}
 			return result, nil
 		}
+		// get from cache
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return fmt.Sprintf("%d", id), nil
+		}
 		resp, err = ser.GetFollowing(ctx, req)
 		assert.Nil(t, err)
 		for _, follower := range resp.Usernames {
@@ -337,14 +468,27 @@ func TestGetFollowing(t *testing.T) {
 		mocks.GetUserInfoFunc = func(username ...string) ([]models.User, error) {
 			return []models.User{}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.GetFollowing(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Username))
+		_, err = ser.GetFollowing(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 }
 
 func TestGetFriends(t *testing.T) {
-	ser := initFollowService()
+	ser, filter := initFollowService()
 	id := 3
 	req := &pbFollow.GetCommonRequest{
 		Username: "test-user",
@@ -395,6 +539,12 @@ func TestGetFriends(t *testing.T) {
 			}
 			return result, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		resp, err := ser.GetFriends(ctx, req)
 		assert.Nil(t, err)
 		assert.Equal(t, len(expect), len(resp.Usernames))
@@ -428,6 +578,10 @@ func TestGetFriends(t *testing.T) {
 			}
 			return result, nil
 		}
+		// get from cache
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return fmt.Sprintf("%d", id), nil
+		}
 		resp, err = ser.GetFriends(ctx, req)
 		assert.Nil(t, err)
 		assert.Equal(t, len(expect), len(resp.Usernames))
@@ -442,16 +596,32 @@ func TestGetFriends(t *testing.T) {
 		mocks.GetUserInfoFunc = func(username ...string) ([]models.User, error) {
 			return []models.User{}, nil
 		}
+		mocks.GetFunc = func(ctx context.Context, key string) (string, error) {
+			return "", nil
+		}
+		mocks.SetFunc = func(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+			return nil
+		}
 		_, err := ser.GetFriends(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
+
+		// get from filter
+		filter.Add([]byte(req.Username))
+		_, err = ser.GetFollowing(ctx, req)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, ErrUserNotFound)
+		filter.Reset()
 	})
 }
 
-func initFollowService() pbFollow.FollowServiceServer {
+func initFollowService() (pbFollow.FollowServiceServer, *boom.CountingBloomFilter) {
 	mockUsers := &mocks.MockSotrageUsers{}
 	mockFollowers := &mocks.MockSotrageFollowers{}
+	mockCache := &mocks.MockSotrageCache{}
+	filter := boom.NewDefaultCountingBloomFilter(100, 0.1)
+	ttl := time.Minute
 	logger, _ := zap.NewDevelopment()
-	followService := NewFollowService(mockUsers, mockFollowers, logger)
-	return followService
+	followService := NewFollowService(mockUsers, mockFollowers, mockCache, ttl, filter, logger)
+	return followService, filter
 }

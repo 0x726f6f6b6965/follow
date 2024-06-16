@@ -7,4 +7,6 @@ type AppConfig struct {
 	GrpcPort uint64           `yaml:"grpc-port" mapstructure:"grpc-port"`
 	Log      logger.LogConfig `yaml:"log" mapstructure:"log"`
 	DB       DBConfig         `yaml:"db" mapstructure:"db"`
+	Redis    RedisConfig      `yaml:"redis" mapstructure:"redis"`
+	TTL      uint64           `yaml:"ttl" mapstructure:"ttl"`
 }
