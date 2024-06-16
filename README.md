@@ -4,6 +4,8 @@
 
 This is a repository for following each other on social media features.
 
+It uses the singleflight package to address a large number of requests in a short period and leverages the counting bloom filter to handle invalid users.
+
 ## Entity Relationship Diagram
 
 Because the followers are also users, this will be a many-to-many model.
