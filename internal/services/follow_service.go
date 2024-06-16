@@ -16,7 +16,7 @@ const DEFAUTL_SIZE = 50
 
 type followService struct {
 	pbFollow.UnsafeFollowServiceServer
-	storage *user.SotrageUsers
+	storage user.SotrageUsers
 }
 
 // FollowUser implements v1.FollowServiceServer.
