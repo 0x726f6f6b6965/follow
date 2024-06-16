@@ -9,6 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func InitUserService(cfg *config.AppConfig) (service *gorm.DB, cleanup func(), err error) {
+func InitDBService(cfg *config.AppConfig) (service *gorm.DB, cleanup func(), err error) {
 	panic(wire.Build(dbSet))
 }

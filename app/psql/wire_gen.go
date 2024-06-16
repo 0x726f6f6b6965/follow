@@ -14,7 +14,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitUserService(cfg *config.AppConfig) (*gorm.DB, func(), error) {
+func InitDBService(cfg *config.AppConfig) (*gorm.DB, func(), error) {
 	configDBConfig := dbConfig(cfg)
 	db, cleanup, err := storage.NewPostgres(configDBConfig)
 	if err != nil {

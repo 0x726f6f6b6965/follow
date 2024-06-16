@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package redis
+package rds
 
 import (
 	"github.com/0x726f6f6b6965/follow/internal/config"
@@ -14,7 +14,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitUserService(cfg *config.AppConfig) (*redis.Client, func(), error) {
+func InitRdsService(cfg *config.AppConfig) (*redis.Client, func(), error) {
 	configRedisConfig := redisConfig(cfg)
 	client, cleanup, err := storage.NewRedis(configRedisConfig)
 	if err != nil {

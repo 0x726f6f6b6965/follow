@@ -1,7 +1,7 @@
 //go:build wireinject
 // +build wireinject
 
-package redis
+package rds
 
 import (
 	"github.com/0x726f6f6b6965/follow/internal/config"
@@ -9,6 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func InitUserService(cfg *config.AppConfig) (service *redis.Client, cleanup func(), err error) {
+func InitRdsService(cfg *config.AppConfig) (service *redis.Client, cleanup func(), err error) {
 	panic(wire.Build(redisSet))
 }
