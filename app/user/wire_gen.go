@@ -9,42 +9,28 @@ package user
 import (
 	"github.com/0x726f6f6b6965/follow/internal/config"
 	"github.com/0x726f6f6b6965/follow/internal/services"
-	"github.com/0x726f6f6b6965/follow/internal/storage"
 	"github.com/0x726f6f6b6965/follow/internal/storage/cache"
 	"github.com/0x726f6f6b6965/follow/internal/storage/user"
 	"github.com/0x726f6f6b6965/follow/pkg/logger"
 	"github.com/0x726f6f6b6965/follow/protos/user/v1"
+	"github.com/redis/go-redis/v9"
 	"github.com/tylertreat/BoomFilters"
+	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
 
-func InitUserService(cfg *config.AppConfig, filter *boom.CountingBloomFilter) (v1.UserServiceServer, func(), error) {
-	configDBConfig := dbConfig(cfg)
-	db, cleanup, err := storage.NewPostgres(configDBConfig)
-	if err != nil {
-		return nil, nil, err
-	}
+func InitUserService(cfg *config.AppConfig, db *gorm.DB, rds *redis.Client, filter *boom.CountingBloomFilter) (v1.UserServiceServer, func(), error) {
 	sotrageUsers := user.New(db)
-	configRedisConfig := redisConfig(cfg)
-	client, cleanup2, err := storage.NewRedis(configRedisConfig)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	cacheCache := cache.New(client)
+	cacheCache := cache.New(rds)
 	duration := getTTL(cfg)
 	loggerLogConfig := logConfig(cfg)
-	zapLogger, cleanup3, err := logger.NewLogger(loggerLogConfig)
+	zapLogger, cleanup, err := logger.NewLogger(loggerLogConfig)
 	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	userServiceServer := services.NewUserService(sotrageUsers, cacheCache, duration, filter, zapLogger)
 	return userServiceServer, func() {
-		cleanup3()
-		cleanup2()
 		cleanup()
 	}, nil
 }
