@@ -118,6 +118,15 @@ func (f *followAPI) GetFollowers(ctx *gin.Context) {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": res.Err.Error()})
 			return
 		}
+		resp, ok := res.Val.(*pbFollow.GetCommonResponse)
+		if !ok {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response type"})
+			return
+		}
+		if len(resp.Usernames) == 0 {
+			ctx.JSON(http.StatusOK, gin.H{"message": "no follower"})
+			return
+		}
 		ctx.JSON(http.StatusOK, res.Val)
 	}
 }
@@ -147,6 +156,15 @@ func (f *followAPI) GetFollowing(ctx *gin.Context) {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": res.Err.Error()})
 			return
 		}
+		resp, ok := res.Val.(*pbFollow.GetCommonResponse)
+		if !ok {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response type"})
+			return
+		}
+		if len(resp.Usernames) == 0 {
+			ctx.JSON(http.StatusOK, gin.H{"message": "no following user"})
+			return
+		}
 		ctx.JSON(http.StatusOK, res.Val)
 	}
 }
@@ -174,6 +192,15 @@ func (f *followAPI) GetFriends(ctx *gin.Context) {
 	case res := <-dataChan:
 		if res.Err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": res.Err.Error()})
+			return
+		}
+		resp, ok := res.Val.(*pbFollow.GetCommonResponse)
+		if !ok {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response type"})
+			return
+		}
+		if len(resp.Usernames) == 0 {
+			ctx.JSON(http.StatusOK, gin.H{"message": "no friend"})
 			return
 		}
 		ctx.JSON(http.StatusOK, res.Val)
