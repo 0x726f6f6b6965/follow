@@ -55,7 +55,9 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 
 	err = f.followerStorage.SetFollowing(userId, targetId)
 	if err != nil {
-		f.logger.Error("set user followeing failed", zap.Any("request", req), zap.Error(err))
+		if !errors.Is(err, gorm.ErrDuplicatedKey) {
+			f.logger.Error("set user followeing failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrSetFollow, err)
 	}
 	return &emptypb.Empty{}, nil
@@ -225,9 +227,9 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 	}
 	friendIds := []int{}
 	for _, info := range friendInfos {
-		friendIds = append(friendIds, info.FollowerId)
-		if info.FollowerId > token.LastId {
-			token.LastId = info.FollowerId
+		friendIds = append(friendIds, info.FollowingId)
+		if info.FollowingId > token.LastId {
+			token.LastId = info.FollowingId
 		}
 	}
 	nextToken := token.String()
@@ -249,10 +251,10 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 	return resp, nil
 }
 
-func NewFollowService(db *gorm.DB, logger *zap.Logger) pbFollow.FollowServiceServer {
+func NewFollowService(storageUser user.SotrageUsers, storageFollower follower.SotrageFollowers, logger *zap.Logger) pbFollow.FollowServiceServer {
 	return &followService{
-		userStorage:     user.New(db),
-		followerStorage: follower.New(db),
+		userStorage:     storageUser,
+		followerStorage: storageFollower,
 		logger:          logger,
 	}
 }
