@@ -1,0 +1,19 @@
+http-port: 8080
+env: "dev"
+db:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "docker"
+  db-name: "postgres"
+  ssl-mode: "disable"
+log:
+  level: -1
+  time-format: "2006-01-02T15:04:05Z07:00"
+  service-name: "follow-service"
+redis:
+  host: "localhost"
+  port: 6380
+  password: "123456"
+  db: 0
+  pool-size: 10

@@ -9,6 +9,8 @@ storage-init:
 		-e POSTGRES_USER=$(POSTGRES_USER) \
 		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 		--rm postgres:16.1
+	@docker run --name redis-lab -p $(REDIS_PORT):$(REDIS_PORT)\
+	 -d --rm redis:7.2.3 --requirepass ${REDIS_PASSWORD}
 
 .PHONY: storage-migrate
 storage-migrate:
@@ -34,3 +36,16 @@ proto-clean:
 test-go:
 	@go test --coverprofile=coverage.out ./... 
 	@go tool cover -html=coverage.out  
+
+## service-build: Build service image
+.PHONY: service-build
+service-build:
+	@docker build --tag ${SERVICE_NAME}:$(shell git rev-parse HEAD) -f ./build/Dockerfile .
+
+.PHONY: service-up
+service-up:
+	@docker-compose -f ./deployment/compose.yaml --project-directory . up -d
+
+.PHONY: service-down
+service-down:
+	@docker-compose -f ./deployment/compose.yaml --project-directory . down 
