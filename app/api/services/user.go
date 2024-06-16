@@ -6,10 +6,12 @@ import (
 	"github.com/0x726f6f6b6965/follow/internal/helper"
 	pbUser "github.com/0x726f6f6b6965/follow/protos/user/v1"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/singleflight"
 )
 
 type userAPI struct {
 	server pbUser.UserServiceServer
+	group  singleflight.Group
 }
 
 type UserAPI interface {
@@ -17,7 +19,9 @@ type UserAPI interface {
 }
 
 func NewUserAPI(server pbUser.UserServiceServer) UserAPI {
-	return &userAPI{server}
+	return &userAPI{
+		server: server,
+	}
 }
 
 func (u *userAPI) CreateUser(ctx *gin.Context) {
@@ -31,12 +35,18 @@ func (u *userAPI) CreateUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-
-	res, err := u.server.CreateUser(ctx, &req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	dataChan := u.group.DoChan(req.Username, func() (interface{}, error) {
+		return u.server.CreateUser(ctx, &req)
+	})
+	select {
+	case <-ctx.Done():
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": ErrTimeout.Error()})
 		return
+	case res := <-dataChan:
+		if res.Err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": res.Err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, res.Val)
 	}
-
-	ctx.JSON(http.StatusOK, res)
 }
