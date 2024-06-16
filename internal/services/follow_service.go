@@ -6,9 +6,11 @@ import (
 	"fmt"
 
 	"github.com/0x726f6f6b6965/follow/internal/helper"
+	"github.com/0x726f6f6b6965/follow/internal/storage/follower"
 	"github.com/0x726f6f6b6965/follow/internal/storage/user"
 	"github.com/0x726f6f6b6965/follow/pkg/pagination"
 	pbFollow "github.com/0x726f6f6b6965/follow/protos/follow/v1"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
@@ -17,13 +19,18 @@ const DEFAUTL_SIZE = 50
 
 type followService struct {
 	pbFollow.UnsafeFollowServiceServer
-	storage user.SotrageUsers
+	logger          *zap.Logger
+	userStorage     user.SotrageUsers
+	followerStorage follower.SotrageFollowers
 }
 
 // FollowUser follow a user.
 func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUserRequest) (*emptypb.Empty, error) {
-	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Following)
+	usersInfo, err := f.userStorage.GetUserInfo(req.Username, req.Following)
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 2 {
@@ -46,8 +53,9 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
 	}
 
-	err = f.storage.SetFollowing(userId, targetId)
+	err = f.followerStorage.SetFollowing(userId, targetId)
 	if err != nil {
+		f.logger.Error("set user followeing failed", zap.Any("request", req), zap.Error(err))
 		return nil, errors.Join(ErrSetFollow, err)
 	}
 	return &emptypb.Empty{}, nil
@@ -55,8 +63,11 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 
 // UnFollowUser unfollow a user.
 func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollowUserRequest) (*emptypb.Empty, error) {
-	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Following)
+	usersInfo, err := f.userStorage.GetUserInfo(req.Username, req.Following)
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 2 {
@@ -79,8 +90,9 @@ func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollow
 		return nil, errors.Join(ErrUserNotFound,
 			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
 	}
-	err = f.storage.UnsetFollowing(userId, targetId)
+	err = f.followerStorage.UnsetFollowing(userId, targetId)
 	if err != nil {
+		f.logger.Error("set user unfolloweing failed", zap.Any("request", req), zap.Error(err))
 		return nil, errors.Join(ErrSetFollow, err)
 	}
 	return &emptypb.Empty{}, nil
@@ -88,8 +100,11 @@ func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollow
 
 // GetFollowers get followers list.
 func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
-	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
+	usersInfo, err := f.userStorage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 1 {
@@ -107,8 +122,9 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 		token.Size = int(req.Size)
 	}
 	lastId := token.LastId
-	followersInfo, err := f.storage.GetUserWithFollowers(userId, token.LastId, token.Size)
+	followersInfo, err := f.followerStorage.GetUserWithFollowers(userId, token.LastId, token.Size)
 	if err != nil {
+		f.logger.Error("get follower info failed", zap.Any("request", req), zap.Error(err))
 		return nil, err
 	}
 	followers := []string{}
@@ -132,8 +148,11 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 
 // GetFollowing get following list.
 func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
-	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
+	usersInfo, err := f.userStorage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 1 {
@@ -151,8 +170,9 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 		token.Size = int(req.Size)
 	}
 	lastId := token.LastId
-	followingInfo, err := f.storage.GetUserWithFollowing(userId, token.LastId, token.Size)
+	followingInfo, err := f.followerStorage.GetUserWithFollowing(userId, token.LastId, token.Size)
 	if err != nil {
+		f.logger.Error("get following info failed", zap.Any("request", req), zap.Error(err))
 		return nil, err
 	}
 	following := []string{}
@@ -176,8 +196,11 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 
 // GetFriends get friends list.
 func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonRequest) (*pbFollow.GetCommonResponse, error) {
-	usersInfo, err := f.storage.GetUserInfo(req.Username, req.Username)
+	usersInfo, err := f.userStorage.GetUserInfo(req.Username, req.Username)
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
+		}
 		return nil, errors.Join(ErrUserNotFound, err)
 	}
 	if len(usersInfo) != 1 {
@@ -195,8 +218,9 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 		token.Size = int(req.Size)
 	}
 	lastId := token.LastId
-	friendInfos, err := f.storage.GetUserWithFriends(userId, token.LastId, token.Size)
+	friendInfos, err := f.followerStorage.GetUserWithFriends(userId, token.LastId, token.Size)
 	if err != nil {
+		f.logger.Error("get friends info failed", zap.Any("request", req), zap.Error(err))
 		return nil, err
 	}
 	friendIds := []int{}
@@ -213,8 +237,9 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 	resp := &pbFollow.GetCommonResponse{
 		NextPageToken: nextToken,
 	}
-	friends, err := f.storage.GetUserInfoById(friendIds...)
+	friends, err := f.userStorage.GetUserInfoById(friendIds...)
 	if err != nil {
+		f.logger.Error("get user info failed", zap.Any("request", req), zap.Error(err))
 		return nil, err
 	}
 	for _, friend := range friends {
@@ -224,8 +249,10 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 	return resp, nil
 }
 
-func NewFollowService(db *gorm.DB) pbFollow.FollowServiceServer {
+func NewFollowService(db *gorm.DB, logger *zap.Logger) pbFollow.FollowServiceServer {
 	return &followService{
-		storage: user.New(db),
+		userStorage:     user.New(db),
+		followerStorage: follower.New(db),
+		logger:          logger,
 	}
 }

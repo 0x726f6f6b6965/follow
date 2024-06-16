@@ -2,85 +2,38 @@ package user
 
 import (
 	"testing"
+	"time"
 
+	"github.com/0x726f6f6b6965/follow/internal/storage/models"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func TestGetUserWithFollowers(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 	db, cleanup, mock, err := initSQL()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cleanup()
 	storage := New(db)
+	userId := 3
+	data := &models.User{
+		Username: "test-user",
+		Password: "pwd",
+		Salt:     "salt",
+	}
 	mock.MatchExpectationsInOrder(true)
-	mock.ExpectQuery("SELECT u.id, u.username FROM t_followers f INNER JOIN t_user u ON f.follower_id = u.id WHERE f.following_id = $1 and f.follower_id > $2 ORDER BY f.follower_id asc LIMIT $3").
-		WithArgs(1, 0, 5).
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT INTO \"t_user\" (\"username\",\"password\",\"salt\") VALUES ($1,$2,$3) RETURNING \"create_time\",\"update_time\",\"id\"").
+		WithArgs(data.Username, data.Password, data.Salt).
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "username"}).
-			AddRow(2, "user-2").AddRow(3, "user-3").
-			AddRow(4, "user-4").AddRow(5, "user-5").
-			AddRow(6, "user-6"))
-	result, err := storage.GetUserWithFollowers(1, 0, 5)
+			[]string{"id", "create_time", "update_time"}).
+			AddRow(userId, time.Now(), time.Now()))
+	mock.ExpectCommit()
+	err = storage.CreateUser(data)
 	if err != nil {
 		t.Fatal(err)
-	}
-	expect := []int{2, 3, 4, 5, 6}
-	for _, follower := range result {
-		assert.Contains(t, expect, follower.Id)
-	}
-}
-
-func TestGetUserWithFollowing(t *testing.T) {
-	db, cleanup, mock, err := initSQL()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
-	storage := New(db)
-	mock.MatchExpectationsInOrder(true)
-	mock.ExpectQuery("SELECT u.id, u.username FROM t_followers f INNER JOIN t_user u ON f.following_id = u.id WHERE f.follower_id = $1 and f.following_id > $2 ORDER BY f.following_id asc LIMIT $3").
-		WithArgs(1, 0, 5).
-		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "username"}).
-			AddRow(2, "user-2").AddRow(3, "user-3").
-			AddRow(4, "user-4").AddRow(5, "user-5").
-			AddRow(6, "user-6"))
-	result, err := storage.GetUserWithFollowing(1, 0, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expect := []int{2, 3, 4, 5, 6}
-	for _, follower := range result {
-		assert.Contains(t, expect, follower.Id)
-	}
-}
-
-func TestGetUserWithFriends(t *testing.T) {
-	db, cleanup, mock, err := initSQL()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
-	storage := New(db)
-	mock.MatchExpectationsInOrder(true)
-	mock.ExpectQuery("SELECT f.following_id FROM t_followers f INNER JOIN t_followers f2 ON f.follower_id = f2.following_id and f.following_id = f2.follower_id WHERE f.follower_id < f.following_id and f.follower_id = $1 and f.following_id > $2 ORDER BY f.following_id asc LIMIT $3").
-		WithArgs(1, 0, 5).
-		WillReturnRows(sqlmock.NewRows(
-			[]string{"following_id"}).
-			AddRow(2).AddRow(3).
-			AddRow(4).AddRow(5).
-			AddRow(6))
-	result, err := storage.GetUserWithFriends(1, 0, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expect := []int{2, 3, 4, 5, 6}
-	for _, follower := range result {
-		assert.Contains(t, expect, follower.FollowingId)
 	}
 }
 
