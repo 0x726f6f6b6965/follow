@@ -21,7 +21,7 @@ import (
 )
 
 type followService struct {
-	pbFollow.UnsafeFollowServiceServer
+	pbFollow.UnimplementedFollowServiceServer
 	logger          *zap.Logger
 	userStorage     user.SotrageUsers
 	followerStorage follower.SotrageFollowers
