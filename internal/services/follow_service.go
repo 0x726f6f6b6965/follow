@@ -135,7 +135,7 @@ func (f *followService) GetFollowers(ctx context.Context, req *pbFollow.GetCommo
 		}
 	}
 	nextToken := token.String()
-	if lastId == token.LastId {
+	if lastId == token.LastId || len(followers) < token.Size {
 		nextToken = ""
 	}
 
@@ -177,7 +177,7 @@ func (f *followService) GetFollowing(ctx context.Context, req *pbFollow.GetCommo
 		}
 	}
 	nextToken := token.String()
-	if lastId == token.LastId {
+	if lastId == token.LastId || len(following) < token.Size {
 		nextToken = ""
 	}
 
@@ -219,7 +219,7 @@ func (f *followService) GetFriends(ctx context.Context, req *pbFollow.GetCommonR
 		}
 	}
 	nextToken := token.String()
-	if lastId == token.LastId {
+	if lastId == token.LastId || len(friendInfos) < token.Size {
 		nextToken = ""
 	}
 	resp := &pbFollow.GetCommonResponse{

@@ -20,9 +20,12 @@ Because the followers are also users, this will be a many-to-many model.
    - Users should be allowed to unfollow other users.
 3. Get followers
    - Users should get their followers.
+   - The default page size is 50.
 4. Get following
    - Users should get their following.
+   - The default page size is 50.
 5. Get friends
    - The definition of friends is users who follow each other.
    - Users should get their friends.
+   - The default page size is 50.
 
