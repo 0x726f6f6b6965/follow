@@ -32,7 +32,7 @@ func (u *userAPI) CreateUser(ctx *gin.Context) {
 	}
 
 	if helper.IsEmpty(req.Password) || helper.IsEmpty(req.Username) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		ctx.JSON(http.StatusBadRequest, MessageInvalidInput)
 		return
 	}
 	dataChan := u.group.DoChan(req.Username, func() (interface{}, error) {
@@ -40,13 +40,13 @@ func (u *userAPI) CreateUser(ctx *gin.Context) {
 	})
 	select {
 	case <-ctx.Done():
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": ErrTimeout.Error()})
+		ctx.JSON(http.StatusInternalServerError, MessageTimeout)
 		return
 	case res := <-dataChan:
 		if res.Err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": res.Err.Error()})
 			return
 		}
-		ctx.JSON(http.StatusOK, res.Val)
+		ctx.JSON(http.StatusOK, MessageSuccess)
 	}
 }

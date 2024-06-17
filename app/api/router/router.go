@@ -22,7 +22,7 @@ func NewRouter(userAPI services.UserAPI, followAPI services.FollowAPI) Router {
 
 func (r *router) RegisterRoutes(server *gin.Engine) {
 	r.registerUserRouter(server.Group("/v1/user/"))
-	r.registerFollowRouter(server.Group("/v1/follow/"))
+	r.registerFollowRouter(server.Group("/v1/relationship/"))
 }
 
 func (r *router) registerUserRouter(group *gin.RouterGroup) {
@@ -35,7 +35,7 @@ func (r *router) registerFollowRouter(group *gin.RouterGroup) {
 
 	list := group.Group("/list")
 
-	list.POST("/followers", r.followAPI.GetFollowers)
-	list.POST("/following", r.followAPI.GetFollowing)
-	list.POST("/friends", r.followAPI.GetFriends)
+	list.GET("/followers/:username", r.followAPI.GetFollowers)
+	list.GET("/following/:username", r.followAPI.GetFollowing)
+	list.GET("/friends/:username", r.followAPI.GetFriends)
 }

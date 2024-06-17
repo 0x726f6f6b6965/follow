@@ -76,7 +76,7 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 
 // UnFollowUser unfollow a user.
 func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollowUserRequest) (*emptypb.Empty, error) {
-	usersInfo, err := f.getUserInfo(ctx, req.Username, req.Following)
+	usersInfo, err := f.getUserInfo(ctx, req.Username, req.Unfollow)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollow
 	for _, info := range usersInfo {
 		if info.Username == req.Username {
 			userId = info.Id
-		} else if info.Username == req.Following {
+		} else if info.Username == req.Unfollow {
 			targetId = info.Id
 		}
 	}

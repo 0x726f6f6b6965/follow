@@ -31,7 +31,7 @@ message FollowUserRequest {
 
 message UnFollowUserRequest {
     string username = 1;
-    string following = 2;
+    string unfollow = 2;
 }
 
 message GetCommonRequest {

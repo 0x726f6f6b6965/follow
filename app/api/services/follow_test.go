@@ -75,8 +75,8 @@ func TestUnFollowUser(t *testing.T) {
 				w := httptest.NewRecorder()
 				ctx := getTestGinContext(w)
 				body := &pbFollow.UnFollowUserRequest{
-					Username:  "abc",
-					Following: "def",
+					Username: "abc",
+					Unfollow: "def",
 				}
 				mockJsonPost(ctx, body)
 

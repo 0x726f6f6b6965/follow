@@ -151,8 +151,8 @@ func TestUnFollowUser(t *testing.T) {
 	userId := 3
 	followingId := 5
 	req := &pbFollow.UnFollowUserRequest{
-		Username:  "test-user",
-		Following: "test-following",
+		Username: "test-user",
+		Unfollow: "test-following",
 	}
 	ctx := context.Background()
 	t.Run("success", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestUnFollowUser(t *testing.T) {
 		assert.ErrorIs(t, err, ErrUserNotFound)
 
 		// get from filter
-		filter.Add([]byte(req.Following))
+		filter.Add([]byte(req.Unfollow))
 		_, err = ser.UnFollowUser(ctx, req)
 		assert.NotNil(t, err)
 		assert.ErrorIs(t, err, ErrUserNotFound)
