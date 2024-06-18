@@ -31,7 +31,7 @@ func (m *sotrageFollowers) GetUserWithFollowers(userId int, lastId int, limit in
 	err := m.db.Table(fmt.Sprintf("%s f", models.FOLLOWERS_TABLE)).
 		Joins(fmt.Sprintf("INNER JOIN %s u ON f.follower_id = u.id", models.USER_TABLE)).
 		Select("u.id, u.username").
-		Where("f.following_id = ? and f.follower_id > ?", userId, lastId).
+		Where("f.follower_id > ? and f.following_id = ?", lastId, userId).
 		Order("f.follower_id asc").
 		Limit(limit).
 		Find(&data).Error

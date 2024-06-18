@@ -20,7 +20,3 @@ CREATE TABLE IF NOT EXISTS t_followers (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_follow_relation ON t_followers (follower_id, following_id);
-
-CREATE INDEX IF NOT EXISTS idx_followers ON t_followers (follower_id);
-
-CREATE INDEX IF NOT EXISTS idx_following ON t_followers (following_id);
