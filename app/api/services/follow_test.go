@@ -38,7 +38,7 @@ func TestFollowUser(t *testing.T) {
 					Username:  "abc",
 					Following: "def",
 				}
-				mockJsonPost(ctx, body)
+				mockPost(ctx, body)
 
 				api.FollowUser(ctx)
 				if w.Code != http.StatusOK {
@@ -78,7 +78,7 @@ func TestUnFollowUser(t *testing.T) {
 					Username: "abc",
 					Unfollow: "def",
 				}
-				mockJsonPost(ctx, body)
+				mockPost(ctx, body)
 
 				api.UnFollowUser(ctx)
 				if w.Code != http.StatusOK {
@@ -118,10 +118,8 @@ func TestGetFollowers(t *testing.T) {
 				defer wg.Done()
 				w := httptest.NewRecorder()
 				ctx := getTestGinContext(w)
-				body := &pbFollow.GetCommonRequest{
-					Username: "abc",
-				}
-				mockJsonPost(ctx, body)
+				ctx.Params = []gin.Param{{Key: "username", Value: "abc"}}
+				mockGet(ctx, map[string]string{"size": "20"})
 
 				api.GetFollowers(ctx)
 				if w.Code != http.StatusOK {
@@ -161,10 +159,8 @@ func TestGetFollowing(t *testing.T) {
 				defer wg.Done()
 				w := httptest.NewRecorder()
 				ctx := getTestGinContext(w)
-				body := &pbFollow.GetCommonRequest{
-					Username: "abc",
-				}
-				mockJsonPost(ctx, body)
+				ctx.Params = []gin.Param{{Key: "username", Value: "abc"}}
+				mockGet(ctx, map[string]string{"size": "20"})
 
 				api.GetFollowing(ctx)
 				if w.Code != http.StatusOK {
@@ -204,10 +200,8 @@ func TestGetFriends(t *testing.T) {
 				defer wg.Done()
 				w := httptest.NewRecorder()
 				ctx := getTestGinContext(w)
-				body := &pbFollow.GetCommonRequest{
-					Username: "abc",
-				}
-				mockJsonPost(ctx, body)
+				ctx.Params = []gin.Param{{Key: "username", Value: "abc"}}
+				mockGet(ctx, map[string]string{"size": "20"})
 
 				api.GetFriends(ctx)
 				if w.Code != http.StatusOK {
@@ -244,8 +238,17 @@ func getTestGinContext(w *httptest.ResponseRecorder) *gin.Context {
 	}
 	return ctx
 }
+func mockGet(c *gin.Context, data map[string]string) {
+	c.Request.Method = "GET"
+	c.Request.Header.Set("Content-Type", "application/json")
+	u := url.Values{}
+	for key, val := range data {
+		u.Add(key, val)
+	}
+	c.Request.URL.RawQuery = u.Encode()
+}
 
-func mockJsonPost(c *gin.Context, content interface{}) {
+func mockPost(c *gin.Context, content interface{}) {
 	c.Request.Method = "POST"
 	c.Request.Header.Set("Content-Type", "application/json")
 
