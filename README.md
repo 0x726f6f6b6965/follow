@@ -37,3 +37,11 @@ Because the followers are also users, this will be a many-to-many model.
    - URL: `GET /v1/relationship/list/friends/${usrname}`
    - Query parameters: `page_token`, `size`
 
+## How to Run it
+1. Set `SERVICE_NAME` in the `.env` file, and then run `make service-build` to build an image
+2. Set db and Redis relevant information in the `.env` file and run `make service-up` to run the service.
+
+## Tech
+- Go: 1.22.1
+- PostgreSQL: 16.1
+- Redis: 7.2.3
