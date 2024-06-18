@@ -59,10 +59,6 @@ func (f *followService) FollowUser(ctx context.Context, req *pbFollow.FollowUser
 			targetId = info.Id
 		}
 	}
-	if userId == 0 || targetId == 0 {
-		return nil, errors.Join(ErrUserNotFound,
-			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
-	}
 
 	err = f.followerStorage.SetFollowing(userId, targetId)
 	if err != nil {
@@ -92,10 +88,7 @@ func (f *followService) UnFollowUser(ctx context.Context, req *pbFollow.UnFollow
 			targetId = info.Id
 		}
 	}
-	if userId == 0 || targetId == 0 {
-		return nil, errors.Join(ErrUserNotFound,
-			fmt.Errorf("id not found, user: %d, following: %d", userId, targetId))
-	}
+
 	err = f.followerStorage.UnsetFollowing(userId, targetId)
 	if err != nil {
 		f.logger.Error("set user unfolloweing failed", zap.Any("request", req), zap.Error(err))
